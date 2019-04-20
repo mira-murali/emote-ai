@@ -1,6 +1,6 @@
 import caffe
 import os
-import cv2
+# import cv2
 from skimage import transform as trans
 import numpy as np
 import math
@@ -45,7 +45,7 @@ def main(args):
 	lab_list = open(split_lb, 'r').read().splitlines()
 	net = caffe.Net(args.proto, args.model, caffe.TEST)
 	hist = np.zeros((10, 10))
-	
+
 	for id in range(len(img_list)):
 		lb_name = lab_list[id]
 		print(lb_name)
