@@ -1,3 +1,6 @@
 [submodule "SPADE"]
 	path = SPADE
 	url = https://github.com/NVlabs/SPADE.git
+[submodule "Face_parsing_python"]
+	path = Face_parsing_python
+	url = https://github.com/Liusifei/Face_parsing_python.git
