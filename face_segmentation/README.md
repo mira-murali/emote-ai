@@ -20,8 +20,10 @@ python train.py \
 ## Testing
 
 ```
-python test.py --data-folder data/samples/ --pre-trained checkpoints/model.pt
+python test.py --data-folder data/samples/ --pre-trained checkpoints/model.pt --batch-size 16 --save-dir segmentation-results
 ```
+
+The `save-dir` folder will be created if it doesn't exist to store the segmentation results.
 
 
 ## Results
