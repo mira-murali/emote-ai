@@ -33,10 +33,13 @@ You also need to download the `shape_predictor_68_face_landmarks.dat` from [here
 python test.py --data-folder data/samples/ \
 --pre-trained checkpoints/model.pt \
 --shape-predictor shape_predictor_68_face_landmarks.dat \ --save-dir seg_results/ \
---batch-size 16
+--batch-size 16 \
+--save-empty empty.txt
 ```
 
 The `save-dir` folder will be created if it doesn't exist to store the segmentation results.
+
+`empty.txt` will save the names of the files that produced black segmentation images.
 
 
 ## Results

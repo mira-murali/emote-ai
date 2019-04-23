@@ -80,6 +80,8 @@ if __name__ == '__main__':
                         help='Directory to save results (will be created)')
     parser.add_argument("-p", "--shape-predictor", required=True,
 	                    help="path to facial landmark predictor")
+    parser.add_argument('--save-empty', default='empty.txt', type=str,
+                        help='path to save txt file with empty image names')
     args = parser.parse_args()
     args.device = torch.device('cuda:1' if torch.cuda.is_available else 'cpu')
 
@@ -96,7 +98,7 @@ if __name__ == '__main__':
     test_dataset = TestDataset(path=args.data_folder, transform=transform, save_path=args.save_dir)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
     model = load_model()
-   
+    namefile = open(args.save_empty, 'w')
     for i, (gray_images, images, names) in enumerate(test_loader):
         # Forward Pass
         gray_images, names = gray_images.numpy(), np.asarray(names)
@@ -110,7 +112,11 @@ if __name__ == '__main__':
             mask = p.starmap(assign_color, zip(mask, rois))
 
         mask = np.asarray(mask) 
-        non_black_images = np.argwhere(np.mean(np.mean(mask, axis=2), axis=1)!=0).reshape(-1)
+        means = np.mean(np.mean(mask, axis=2), axis=1)
+        non_black_images = np.argwhere(means!=0).reshape(-1)
+        black_images = np.argwhere(means==0).reshape(-1)
+        write_names = names[black_images]
+        np.savetxt(namefile, write_names, fmt='%s')
         mask = mask[non_black_images]
         norm_mask = (mask - mask.min())/(mask.max() - mask.min())
         norm_mask *= 255.0
