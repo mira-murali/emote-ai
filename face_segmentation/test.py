@@ -52,14 +52,15 @@ def landmarking(gray):
             # extract the ROI of the face region as a separate image
             (x, y, w, h) = cv2.boundingRect(np.array([shape[i:j]]))
             rois.append((x, y, w, h))
-    print("Done")
     return rois
 
 def assign_color(image, roi):
     for key, value in MAP_FEATURES.items():
-        x, y, w, h = roi[value]
+        try:
+            x, y, w, h = roi[value]
+        except IndexError:
+            return np.zeros_like(image)
         image[y:y+h, x:x+w] = COLOR_FEATURES[key]
-    print("Done color")
     return image
 
 if __name__ == '__main__':
@@ -98,7 +99,7 @@ if __name__ == '__main__':
    
     for i, (gray_images, images, names) in enumerate(test_loader):
         # Forward Pass
-        gray_images = gray_images.numpy()
+        gray_images, names = gray_images.numpy(), np.asarray(names)
         with Pool() as p:
             rois = p.starmap(landmarking, zip(gray_images))
     
@@ -107,9 +108,12 @@ if __name__ == '__main__':
         mask = np.argmax(logits.data.cpu().numpy(), axis=1)
         with Pool() as p:
             mask = p.starmap(assign_color, zip(mask, rois))
+
         mask = np.asarray(mask) 
+        non_black_images = np.argwhere(np.mean(np.mean(mask, axis=2), axis=1)!=0).reshape(-1)
+        mask = mask[non_black_images]
         norm_mask = (mask - mask.min())/(mask.max() - mask.min())
         norm_mask *= 255.0
         # Save
         with Pool() as p:
-            p.starmap(cv2.imwrite, zip(names, norm_mask))
+            p.starmap(cv2.imwrite, zip(names[non_black_images], norm_mask))
