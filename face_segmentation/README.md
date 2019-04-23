@@ -17,10 +17,20 @@ python train.py \
     --batch-size=32
 ```
 
+## Facial Landmarking (Dependencies)
+
+You need to have Dlib and imutils installed. You can install them using pip. Make sure you also have OpenCV installed:
+
+```
+pip install dlib
+pip install imutils
+```
+
+You also need to download the `shape_predictor_68_face_landmarks.dat` from [here](http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2)
 ## Testing
 
 ```
-python test.py --data-folder data/samples/ --pre-trained checkpoints/model.pt
+python test.py --data-folder data/samples/ --pre-trained checkpoints/model.pt --shape-predictor shape_predictor_68_face_landmarks.dat --save-dir seg_results/
 ```
 
 

@@ -25,10 +25,12 @@ class TestDataset(Dataset):
     
     def __getitem__(self, idx):
         img = Image.open(os.path.join(self.path, self.img_files[idx])).convert('RGB')
+        cv_img = cv2.imread(os.path.join(self.path, self.img_files[idx]), cv2.IMREAD_GRAYSCALE)
+        cv_img = cv2.resize(cv_img, (224, 224))
         if self.transform is not None:
             img = self.transform(img)
         
-        return img, os.path.join(self.save_path, self.img_files[idx])
+        return cv_img, img, os.path.join(self.save_path, self.img_files[idx])
     
     def __len__(self):
         return len(self.img_files)
