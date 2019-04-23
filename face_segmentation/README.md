@@ -30,7 +30,10 @@ You also need to download the `shape_predictor_68_face_landmarks.dat` from [here
 ## Testing
 
 ```
-python test.py --data-folder data/samples/ --pre-trained checkpoints/model.pt --shape-predictor shape_predictor_68_face_landmarks.dat --save-dir seg_results/
+python test.py --data-folder data/samples/ \
+--pre-trained checkpoints/model.pt \
+--shape-predictor shape_predictor_68_face_landmarks.dat \ --save-dir seg_results/ \
+--batch-size 16
 ```
 
 The `save-dir` folder will be created if it doesn't exist to store the segmentation results.
