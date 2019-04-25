@@ -47,8 +47,11 @@ python train.py --name [experiment_name] --dataset_mode coco --dataroot [path_to
 # To train on your own custom dataset
 python train.py --name [experiment_name] --dataset_mode custom --label_dir [path_to_labels] -- image_dir [path_to_images] --label_nc [num_labels]
 
-# To train on emotion dataste
-python train.py --name [experiment_name] --dataset_mode emotion --label_dir [path_to_labels] --image_dir [path_to_images] --label_nc 8 --emo_dir [path_to_emotion_file] --no_instance --use_vae --emo_dim [dimension_of_emotion_vector]
+# To train on emotion dataset
+python train.py --name [experiment_name] --dataset_mode emotion --label_dir [path_to_labels] --image_dir [path_to_images] --label_nc 8 --emotion [path_to_emotion_file] --no_instance --use_vae --emo_dim [dimension_of_emotion_vector]
+
+# To train a light weight model
+python train.py --name [experiment_name] --dataset_mode emotion --label_dir [path_to_labels] --image_dir [path_to_images] --emotion [path_to_emotion_file] --label_nc 8 --use_vae --no_instance --emo_dim=[dimension_of_emotion_vector] --crop_size 128 --z_dim 128 --tf_log --no_vgg_loss --load_size 128 --num_upsampling_layers less --num_D 1 --batchSize 12
 ```
 
 There are many options you can specify. Please use `python train.py --help`. The specified options are printed to the console. To specify the number of GPUs to utilize, use `--gpu_ids`. If you want to use the second and third GPUs for example, use `--gpu_ids 1,2`. Modified code is not compatible with CPU.
