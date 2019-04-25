@@ -17,8 +17,9 @@ class SPADEGenerator(BaseNetwork):
     def modify_commandline_options(parser, is_train):
         parser.set_defaults(norm_G='spectralspadesyncbatch3x3')
         parser.add_argument('--num_upsampling_layers',
-                            choices=('normal', 'more', 'most'), default='normal',
-                            help="If 'more', adds upsampling layer between the two middle resnet blocks. If 'most', also add one more upsampling + resnet layer at the end of the generator")
+                            choices=('less', 'normal', 'more', 'most'), default='normal',
+                            help="If 'more', adds upsampling layer between the two middle resnet blocks. If 'most', also add one more upsampling + resnet layer at the end of the generator\
+                                    If 'less' removes one upsampling layer to generate 128x128 images.")
 
         return parser
 
@@ -43,6 +44,8 @@ class SPADEGenerator(BaseNetwork):
         self.G_middle_1 = SPADEResnetBlock(16 * nf, 16 * nf, opt)
 
         self.up_0 = SPADEResnetBlock(16 * nf, 8 * nf, opt)
+        if opt.num_upsampling_layers == 'less':
+            self.up_0_less = SPADEResnetBlock(16 * nf, 4 * nf, opt)
         self.up_1 = SPADEResnetBlock(8 * nf, 4 * nf, opt)
         self.up_2 = SPADEResnetBlock(4 * nf, 2 * nf, opt)
         self.up_3 = SPADEResnetBlock(2 * nf, 1 * nf, opt)
@@ -64,6 +67,8 @@ class SPADEGenerator(BaseNetwork):
             num_up_layers = 6
         elif opt.num_upsampling_layers == 'most':
             num_up_layers = 7
+        elif opt.num_upsampling_layers == 'less':
+            num_up_layers = 4
         else:
             raise ValueError('opt.num_upsampling_layers [%s] not recognized' %
                              opt.num_upsampling_layers)
@@ -100,9 +105,13 @@ class SPADEGenerator(BaseNetwork):
         x = self.G_middle_1(x, seg)
 
         x = self.up(x)
-        x = self.up_0(x, seg)
-        x = self.up(x)
-        x = self.up_1(x, seg)
+        if self.opt.num_upsampling_layers == 'less':
+            x = self.up_0_less(x, seg)
+        else:
+            x = self.up_0(x, seg)
+            x = self.up(x)
+            x = self.up_1(x, seg)
+        
         x = self.up(x)
         x = self.up_2(x, seg)
         x = self.up(x)

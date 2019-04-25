@@ -255,7 +255,8 @@ class Pix2PixModel(torch.nn.Module):
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
-        return eps.mul(std) + mu
+        ret = eps.mul(std) + mu
+        return ret
 
     def use_gpu(self):
         return len(self.opt.gpu_ids) > 0

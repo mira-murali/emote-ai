@@ -8,7 +8,7 @@ import numpy as np
 import torch.nn.functional as F
 from models.networks.base_network import BaseNetwork
 from models.networks.normalization import get_nonspade_norm_layer
-
+import sys
 
 class ConvEncoder(BaseNetwork):
     """ Same architecture as the image discriminator """
@@ -29,16 +29,16 @@ class ConvEncoder(BaseNetwork):
             self.layer6 = norm_layer(nn.Conv2d(ndf * 8, ndf * 8, kw, stride=2, padding=pw))
 
         self.so = s0 = 4
-        self.fc_mu = nn.Linear(ndf * 8 * s0 * s0, 256)
-        self.fc_var = nn.Linear(ndf * 8 * s0 * s0, 256)
+        self.fc_mu = nn.Linear(ndf * 8 * s0 * s0, opt.z_dim)
+        self.fc_var = nn.Linear(ndf * 8 * s0 * s0, opt.z_dim)
 
         self.actvn = nn.LeakyReLU(0.2, False)
         self.opt = opt
 
     def forward(self, x):
-        if x.size(2) != 256 or x.size(3) != 256:
-            x = F.interpolate(x, size=(256, 256), mode='bilinear')
-
+        if self.opt.z_dim==256:
+            if x.size(2) != 256 or x.size(3) != 256:
+                x = F.interpolate(x, size=(256, 256), mode='bilinear')
         x = self.layer1(x)
         x = self.layer2(self.actvn(x))
         x = self.layer3(self.actvn(x))
@@ -51,5 +51,4 @@ class ConvEncoder(BaseNetwork):
         x = x.view(x.size(0), -1)
         mu = self.fc_mu(x)
         logvar = self.fc_var(x)
-
         return mu, logvar

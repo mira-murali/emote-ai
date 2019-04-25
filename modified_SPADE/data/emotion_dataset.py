@@ -61,7 +61,9 @@ class EmotionDataset(Pix2pixDataset):
         age = attributes['age']/100
         gender = 1 if attributes['gender']=='male' else 0
         emotion = list(attributes['emotion'].values())
-        metadata = emotion + [smile, age, gender]
+        glasses = {'NoGlasses':[0,0,0], 'ReadingGlasses':[0,0,1], 'Sunglasses':[0,1,0], 'SwimmingGoggles':[1,0,0]}
+        spectacles = glasses[attributes['glasses']]
+        metadata = emotion + [smile, age, gender] + spectacles
         metadata = torch.FloatTensor(metadata).cuda()
         input_dict['meta'] = metadata
         return
@@ -70,6 +72,7 @@ class EmotionDataset(Pix2pixDataset):
         # Label Image
         label_path = self.label_paths[index]
         label = Image.open(label_path)
+        
         params = get_params(self.opt, label.size)
         transform_label = get_transform(self.opt, params, method=Image.NEAREST, normalize=False)
         

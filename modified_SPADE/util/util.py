@@ -3,7 +3,7 @@ Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
 Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 """
 
-import re
+import re, sys
 import importlib
 import torch
 from argparse import Namespace
@@ -133,7 +133,6 @@ def save_image(image_numpy, image_path, create_dir=False):
     if image_numpy.shape[2] == 1:
         image_numpy = np.repeat(image_numpy, 3, 2)
     image_pil = Image.fromarray(image_numpy)
-
     # save to png
     image_pil.save(image_path.replace('.jpg', '.png'))
 
