@@ -3,9 +3,10 @@ Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
 Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 """
 
-import torch
+import torch, sys
 import models.networks as networks
 import util.util as util
+import numpy as np
 
 
 class Pix2PixModel(torch.nn.Module):
@@ -39,7 +40,11 @@ class Pix2PixModel(torch.nn.Module):
     # can't parallelize custom functions, we branch to different
     # routines based on |mode|.
     def forward(self, data, mode):
-        input_semantics, real_image = self.preprocess_input(data)
+        self.metadata=None
+        if self.opt.emo_dim!=0:
+            input_semantics, real_image, self.metadata = self.preprocess_input(data)
+        else:
+            input_semantics, real_image = self.preprocess_input(data)
 
         if mode == 'generator':
             g_loss, generated = self.compute_generator_loss(
@@ -128,6 +133,8 @@ class Pix2PixModel(torch.nn.Module):
             instance_edge_map = self.get_edges(inst_map)
             input_semantics = torch.cat((input_semantics, instance_edge_map), dim=1)
 
+        if self.opt.emo_dim !=0 :
+            return input_semantics, data['image'], data['meta']
         return input_semantics, data['image']
 
     def compute_generator_loss(self, input_semantics, real_image):
@@ -193,6 +200,8 @@ class Pix2PixModel(torch.nn.Module):
             if compute_kld_loss:
                 KLD_loss = self.KLDLoss(mu, logvar) * self.opt.lambda_kld
 
+        if self.metadata is not None:
+            z=torch.cat([z,self.metadata],1)
         fake_image = self.netG(input_semantics, z=z)
 
         assert (not compute_kld_loss) or self.opt.use_vae, \

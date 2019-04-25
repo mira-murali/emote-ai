@@ -6,8 +6,8 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 from data.base_dataset import BaseDataset, get_params, get_transform
 from PIL import Image
 import util.util as util
-import os
-
+import os, sys, torch
+import numpy as np
 
 class Pix2pixDataset(BaseDataset):
     @staticmethod
@@ -29,7 +29,6 @@ class Pix2pixDataset(BaseDataset):
         label_paths = label_paths[:opt.max_dataset_size]
         image_paths = image_paths[:opt.max_dataset_size]
         instance_paths = instance_paths[:opt.max_dataset_size]
-
         if not opt.no_pairing_check:
             for path1, path2 in zip(label_paths, image_paths):
                 assert self.paths_match(path1, path2), \
@@ -60,7 +59,12 @@ class Pix2pixDataset(BaseDataset):
         label = Image.open(label_path)
         params = get_params(self.opt, label.size)
         transform_label = get_transform(self.opt, params, method=Image.NEAREST, normalize=False)
+        
+        #Loki
         label_tensor = transform_label(label) * 255.0
+        #label_tensor = transform_label(label)*7.1
+        #label_tensor = label_tensor.type(torch.LongTensor)
+
         label_tensor[label_tensor == 255] = self.opt.label_nc  # 'unknown' is opt.label_nc
 
         # input image (real images)
