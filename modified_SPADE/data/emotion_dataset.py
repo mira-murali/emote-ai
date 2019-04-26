@@ -55,7 +55,13 @@ class EmotionDataset(Pix2pixDataset):
             self.emotions = json.load(fh)
         return label_paths, image_paths, instance_paths
 
-    def postprocess(self, input_dict):
+    def postprocess(self, input_dict, only_emotion=False):
+        if only_emotion:
+            metadata = self.emotions[os.path.basename(input_dict['path'])]
+            temp_emo = torch.zeros(self.opt.emo_dim, dtype=torch.float)
+            temp_emo[metadata] = 1
+            input_dict['meta'] = temp_emo
+            return
         attributes = self.emotions[os.path.basename(input_dict['path'])]['faceAttributes']
         smile = attributes['smile']
         age = attributes['age']/100
@@ -72,7 +78,6 @@ class EmotionDataset(Pix2pixDataset):
         # Label Image
         label_path = self.label_paths[index]
         label = Image.open(label_path)
-        
         params = get_params(self.opt, label.size)
         transform_label = get_transform(self.opt, params, method=Image.NEAREST, normalize=False)
         
@@ -90,10 +95,8 @@ class EmotionDataset(Pix2pixDataset):
             (label_path, image_path)
         image = Image.open(image_path)
         image = image.convert('RGB')
-
         transform_image = get_transform(self.opt, params)
         image_tensor = transform_image(image)
-
         # if using instance maps
         if self.opt.no_instance:
             instance_tensor = 0
@@ -113,6 +116,6 @@ class EmotionDataset(Pix2pixDataset):
                       }
         
         # Give subclasses a chance to modify the final output
-        self.postprocess(input_dict)
+        self.postprocess(input_dict, only_emotion=True)
 
         return input_dict
