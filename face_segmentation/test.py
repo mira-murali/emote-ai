@@ -11,6 +11,7 @@ from multiprocessing import Pool
 import sys
 from imutils import face_utils
 import dlib
+from tqdm import tqdm
 
 np.set_printoptions(threshold=sys.maxsize)
 # load pre-trained model and weights
@@ -29,14 +30,14 @@ COLOR_FEATURES = {'mouth': 4,
                 'nose': 7 
                 }
 
-def load_model():
-    model = MobileNetV2_unet(None).to(args.device)
-    state_dict = torch.load(args.pre_trained)
+def load_model(device, pre_trained):
+    model = MobileNetV2_unet(None).to(device)
+    state_dict = torch.load(pre_trained)
     model.load_state_dict(state_dict)
     model.eval()
     return model
 
-def landmarking(gray):
+def landmarking(gray, detector, predictor):  
     rois = []
     # detect faces in the grayscale image
     rects = detector(gray, 1)
@@ -63,6 +64,51 @@ def assign_color(image, roi):
         image[y:y+h, x:x+w] = COLOR_FEATURES[key]
     return image
 
+def face_seg_api(input_dir, segmentation_predictor="face_segmentation/checkpoints/model.pt",
+                     landmark_predictor="face_segmentation/weights/shape_predictor_68_face_landmarks.dat", batch_size=16, device=None):
+    import matplotlib.pyplot as plt
+    output_dir = "temp/labels/"
+    if device is None:
+        device = torch.device('cuda:0' if torch.cuda.is_available else 'cpu')
+    detector = dlib.get_frontal_face_detector()
+    predictor = dlib.shape_predictor(landmark_predictor)
+
+    transform = transforms.Compose([
+        transforms.Resize((150, 150)),
+        transforms.ToTensor(),
+    ])
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
+    
+    test_dataset = TestDataset(path=input_dir, transform=transform, save_path=output_dir)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    model = load_model(device, segmentation_predictor)
+    namefile = open("temp/empty.txt", 'w')
+    for i, (gray_images, images, names) in tqdm(enumerate(test_loader)):
+        # Forward Pass
+        gray_images, names = gray_images.numpy(), np.asarray(names)
+        with Pool() as p:
+            rois = p.starmap(landmarking, zip(gray_images))
+    
+        images = images.to(device)
+        logits = model(images)
+        mask = np.argmax(logits.data.cpu().numpy(), axis=1)
+        with Pool() as p:
+            mask = p.starmap(assign_color, zip(mask, rois))
+
+        mask = np.asarray(mask) 
+        means = np.mean(np.mean(mask, axis=2), axis=1)
+        non_black_images = np.argwhere(means!=0).reshape(-1)
+        black_images = np.argwhere(means==0).reshape(-1)
+        write_names = names[black_images]
+        np.savetxt(namefile, write_names, fmt='%s')
+        mask = mask[non_black_images]
+        norm_mask = (mask - mask.min())/(mask.max() - mask.min())
+        norm_mask *= 255.0
+        # Save
+        with Pool() as p:
+            p.starmap(cv2.imwrite, zip(names[non_black_images], norm_mask))
+
 if __name__ == '__main__':
     import argparse
     import matplotlib.pyplot as plt
@@ -83,13 +129,13 @@ if __name__ == '__main__':
     parser.add_argument('--save-empty', default='empty.txt', type=str,
                         help='path to save txt file with empty image names')
     args = parser.parse_args()
-    args.device = torch.device('cuda:1' if torch.cuda.is_available else 'cpu')
+    args.device = torch.device('cuda:0' if torch.cuda.is_available else 'cpu')
 
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor(args.shape_predictor)
 
     transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((256, 256)),
         transforms.ToTensor(),
     ])
     if not os.path.isdir(args.save_dir):
@@ -97,9 +143,9 @@ if __name__ == '__main__':
     
     test_dataset = TestDataset(path=args.data_folder, transform=transform, save_path=args.save_dir)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
-    model = load_model()
+    model = load_model(args.device, args.pre_trained)
     namefile = open(args.save_empty, 'w')
-    for i, (gray_images, images, names) in enumerate(test_loader):
+    for i, (gray_images, images, names) in tqdm(enumerate(test_loader)):
         # Forward Pass
         gray_images, names = gray_images.numpy(), np.asarray(names)
         with Pool() as p:
