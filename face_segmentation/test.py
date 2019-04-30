@@ -37,7 +37,7 @@ def load_model(device, pre_trained):
     model.eval()
     return model
 
-def landmarking(gray, detector, predictor):  
+def landmarking(gray):  
     rois = []
     # detect faces in the grayscale image
     rects = detector(gray, 1)
@@ -118,15 +118,15 @@ if __name__ == '__main__':
     # Arguments
     parser.add_argument('--data-folder', type=str, default='./data',
                         help='name of the data folder (default: ./data)')
-    parser.add_argument('--batch-size', type=int, default=8,
-                        help='batch size (default: 8)')
+    parser.add_argument('--batch-size', type=int, default=16,
+                        help='batch size (default: 16)')
     parser.add_argument('--pre-trained', type=str, default=None,
                         help='path of pre-trained weights (default: None)')
     parser.add_argument('--save-dir', type=str, default='seg_results',
                         help='Directory to save results (will be created)')
     parser.add_argument("-p", "--shape-predictor", required=True,
 	                    help="path to facial landmark predictor")
-    parser.add_argument('--save-empty', default='empty.txt', type=str,
+    parser.add_argument('--save-empty', default='temp/empty.txt', type=str,
                         help='path to save txt file with empty image names')
     args = parser.parse_args()
     args.device = torch.device('cuda:0' if torch.cuda.is_available else 'cpu')
