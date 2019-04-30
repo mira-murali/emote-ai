@@ -14,19 +14,19 @@ import dlib
 
 np.set_printoptions(threshold=sys.maxsize)
 # load pre-trained model and weights
-MAP_FEATURES = {'mouth': 0, 
-                'reyeb': 1, 
-                'leyeb': 2, 
+MAP_FEATURES = {'mouth': 0,
+                'reyeb': 1,
+                'leyeb': 2,
                 'reye': 3,
                 'leye': 4,
-                'nose': 5 
+                'nose': 5
                 }
-COLOR_FEATURES = {'mouth': 4, 
-                'reyeb': 5, 
-                'leyeb': 5, 
-                'reye': 6,
-                'leye': 6,
-                'nose': 7 
+COLOR_FEATURES = {'mouth': 3,
+                'reyeb': 4,
+                'leyeb': 4,
+                'reye': 5,
+                'leye': 5,
+                'nose': 6
                 }
 
 def load_model():
@@ -70,20 +70,20 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Semantic Segmentation')
 
     # Arguments
-    parser.add_argument('--data-folder', type=str, default='./data',
+    parser.add_argument('--data-folder', type=str, default='../../emote/synthesized_image/',
                         help='name of the data folder (default: ./data)')
     parser.add_argument('--batch-size', type=int, default=8,
                         help='batch size (default: 8)')
-    parser.add_argument('--pre-trained', type=str, default=None,
+    parser.add_argument('--pre-trained', type=str, default='checkpoints/model.pt',
                         help='path of pre-trained weights (default: None)')
-    parser.add_argument('--save-dir', type=str, default='seg_results',
+    parser.add_argument('--save-dir', type=str, default='../../emote/si_labels/',
                         help='Directory to save results (will be created)')
     parser.add_argument("-p", "--shape-predictor", required=True,
 	                    help="path to facial landmark predictor")
-    parser.add_argument('--save-empty', default='empty.txt', type=str,
+    parser.add_argument('--save-empty', default='paint_empty.txt', type=str,
                         help='path to save txt file with empty image names')
     args = parser.parse_args()
-    args.device = torch.device('cuda:1' if torch.cuda.is_available else 'cpu')
+    args.device = torch.device('cuda' if torch.cuda.is_available else 'cpu')
 
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor(args.shape_predictor)
@@ -94,32 +94,34 @@ if __name__ == '__main__':
     ])
     if not os.path.isdir(args.save_dir):
         os.mkdir(args.save_dir)
-    
+    print("Loading test images...")
     test_dataset = TestDataset(path=args.data_folder, transform=transform, save_path=args.save_dir)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+    print("Loading model...")
     model = load_model()
     namefile = open(args.save_empty, 'w')
     for i, (gray_images, images, names) in enumerate(test_loader):
         # Forward Pass
+        print(i)
         gray_images, names = gray_images.numpy(), np.asarray(names)
         with Pool() as p:
             rois = p.starmap(landmarking, zip(gray_images))
-    
+
         images = images.to(args.device)
         logits = model(images)
         mask = np.argmax(logits.data.cpu().numpy(), axis=1)
         with Pool() as p:
             mask = p.starmap(assign_color, zip(mask, rois))
 
-        mask = np.asarray(mask) 
-        means = np.mean(np.mean(mask, axis=2), axis=1)
-        non_black_images = np.argwhere(means!=0).reshape(-1)
-        black_images = np.argwhere(means==0).reshape(-1)
-        write_names = names[black_images]
-        np.savetxt(namefile, write_names, fmt='%s')
-        mask = mask[non_black_images]
+        mask = np.asarray(mask)
+        # means = np.mean(np.mean(mask, axis=2), axis=1)
+        # non_black_images = np.argwhere(means!=0).reshape(-1)
+        # black_images = np.argwhere(means==0).reshape(-1)
+        # write_names = names[black_images]
+        # np.savetxt(namefile, write_names, fmt='%s')
+        # mask = mask[non_black_images]
         norm_mask = (mask - mask.min())/(mask.max() - mask.min())
         norm_mask *= 255.0
         # Save
         with Pool() as p:
-            p.starmap(cv2.imwrite, zip(names[non_black_images], norm_mask))
+            p.starmap(cv2.imwrite, zip(names, norm_mask))
