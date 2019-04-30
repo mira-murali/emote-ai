@@ -53,6 +53,8 @@ class EmotionDataset(Pix2pixDataset):
         assert len(label_paths) == len(image_paths), "The #images in %s and %s do not match. Is there something wrong?"
         with open(opt.emotion,'r') as fh:
             self.emotions = json.load(fh)
+        self.remember=None
+        self.remember_e=0
         return label_paths, image_paths, instance_paths
 
     def postprocess(self, input_dict, only_emotion=False):
@@ -66,7 +68,11 @@ class EmotionDataset(Pix2pixDataset):
         smile = attributes['smile']
         age = attributes['age']/100
         gender = 1 if attributes['gender']=='male' else 0
-        emotion = list(attributes['emotion'].values())
+        if self.opt.phase=='test':
+            emotion = attributes['emotion']
+        else:
+            emotion = list(attributes['emotion'].values())
+        
         glasses = {'NoGlasses':[0,0,0], 'ReadingGlasses':[0,0,1], 'Sunglasses':[0,1,0], 'SwimmingGoggles':[1,0,0]}
         spectacles = glasses[attributes['glasses']]
         metadata = emotion + [smile, age, gender] + spectacles
@@ -116,6 +122,5 @@ class EmotionDataset(Pix2pixDataset):
                       }
 
         # Give subclasses a chance to modify the final output
-        self.postprocess(input_dict, only_emotion=True)
-
+        self.postprocess(input_dict)
         return input_dict
