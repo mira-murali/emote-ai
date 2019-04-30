@@ -22,12 +22,12 @@ MAP_FEATURES = {'mouth': 0,
                 'leye': 4,
                 'nose': 5
                 }
-COLOR_FEATURES = {'mouth': 3,
-                'reyeb': 4,
-                'leyeb': 4,
-                'reye': 5,
-                'leye': 5,
-                'nose': 6
+COLOR_FEATURES = {'mouth': 4, 
+                'reyeb': 5, 
+                'leyeb': 5, 
+                'reye': 6,
+                'leye': 6,
+                'nose': 7 
                 }
 
 def load_model(device, pre_trained):

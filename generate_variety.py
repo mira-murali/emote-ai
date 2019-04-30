@@ -7,6 +7,8 @@ from multiprocessing import Pool, Manager
 from modified_SPADE.util.util import tile_images
 import cognitive_face as CF
 from face import get_facial_attributes
+import imageio
+from tqdm import tqdm
 KEYS = ['2b914fc564954fbd81f44a834507c941', '3e7944d9f00a4b03ba9fc5364afffcd8','00cddd78f5c64e29ba0d755a842aaa41']  # Replace with a valid subscription key (keeping the quotes in place).
 current_key=0
 CF.Key.set(KEYS[current_key])
@@ -69,7 +71,7 @@ def create_json_age(images_dir):
 				attrib_dict[file]
 			except:
 				attrib_dict=get_facial_attributes(images_dir+"/"+file, attrib_dict, KEYS)
-			for age in range(0,100,10):
+			for age in range(0,100,1):
 				fname = file.replace(".png","_{:03d}.png".format(counter))
 				meta_dict[fname] = {
 	'faceAttributes':{
@@ -126,14 +128,15 @@ def move_images_into_dirs(num_copies, results_dir):
 			d[root].append(file)
 		except:
 			d[root]=[file]
-	for file in d.keys():
+	for file in tqdm(d.keys()):
 		fdir = "temp/categ/"+file[:file.index(".png")]
 		os.mkdir(fdir)
 		
+		gif_list=[]
 		with Pool() as pool:
 			pool.starmap(add_text,[(results_dir+f,"Age:{}".format(js[f]['faceAttributes']['age']),fdir+"/"+f) for f in d[file]])
 			#pool.starmap(add_text,[(results_dir+f,"".format(js[f]['faceAttributes']['age']),fdir+"/"+f) for f in d[file]])
-		
+		imageio.mimsave("temp/gif/{}.gif".format(file), [imageio.imread("dataset/ffhq128/images/"+file)]+[imageio.imread(fdir+"/"+f) for f in sorted(d[file])], fps=len(d[file])/6)
 		subprocess.call(["python", "modified_SPADE/util/tile_images.py", "--grid-size={}".format(rt), "--save-dir=temp/{}".format(file), "--root-dir={}".format(fdir)])
 
 def add_text(image_in, text, image_out):
@@ -161,7 +164,7 @@ def clean_dirs(list_dirs):
 
 if __name__=="__main__":
 	images_dir=sys.argv[1]
-	create_dirs(["temp/", "temp/images/", "temp/labels/", "temp/synth/", "temp/tiled/", "temp/categ/"])
+	create_dirs(["temp/", "temp/images/", "temp/labels/", "temp/synth/", "temp/tiled/", "temp/categ/", "temp/gif/"])
 
 	subprocess.call(["python", "face_segmentation/test.py", "--data-folder={}".format(images_dir), "--shape-predictor=face_segmentation/weights/shape_predictor_68_face_landmarks.dat",
 																  "--pre-trained=face_segmentation/checkpoints/model.pt", "--save-dir=temp/labels/"])
@@ -173,4 +176,4 @@ if __name__=="__main__":
 					"--z_dim=128", "--load_size=128", "--num_upsampling_layers=less", "--batchSize=12", "--results_dir=temp/synth/"])
 	
 	move_images_into_dirs(num_copies, "temp/synth/ffhq128/test_latest/images/synthesized_image/")
-	#clean_dirs(["temp/images/", "temp/labels/", "temp/synth/", "temp/tiled/", "temp/categ/"])
+	clean_dirs(["temp/images/", "temp/labels/", "temp/synth/", "temp/tiled/", "temp/categ/"])
