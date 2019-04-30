@@ -4,7 +4,7 @@ import cv2
 from PIL import Image
 import matplotlib.pyplot as plt
 
-def main():
+def tile_image():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--root-dir', type=str, default='./',
@@ -32,5 +32,5 @@ def main():
     grid_image = cv2.cvtColor(grid_image, cv2.COLOR_BGR2RGB)
     cv2.imwrite(args.save_dir, grid_image)
 
-if __name__ == '__main__':
-    main()
+if __name__ =='__main__':
+    tile_image()

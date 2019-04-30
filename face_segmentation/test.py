@@ -15,19 +15,19 @@ from tqdm import tqdm
 
 np.set_printoptions(threshold=sys.maxsize)
 # load pre-trained model and weights
-MAP_FEATURES = {'mouth': 0, 
-                'reyeb': 1, 
-                'leyeb': 2, 
+MAP_FEATURES = {'mouth': 0,
+                'reyeb': 1,
+                'leyeb': 2,
                 'reye': 3,
                 'leye': 4,
-                'nose': 5 
+                'nose': 5
                 }
-COLOR_FEATURES = {'mouth': 4, 
-                'reyeb': 5, 
-                'leyeb': 5, 
-                'reye': 6,
-                'leye': 6,
-                'nose': 7 
+COLOR_FEATURES = {'mouth': 3,
+                'reyeb': 4,
+                'leyeb': 4,
+                'reye': 5,
+                'leye': 5,
+                'nose': 6
                 }
 
 def load_model(device, pre_trained):
@@ -79,7 +79,7 @@ def face_seg_api(input_dir, segmentation_predictor="face_segmentation/checkpoint
     ])
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
-    
+
     test_dataset = TestDataset(path=input_dir, transform=transform, save_path=output_dir)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     model = load_model(device, segmentation_predictor)
@@ -89,14 +89,14 @@ def face_seg_api(input_dir, segmentation_predictor="face_segmentation/checkpoint
         gray_images, names = gray_images.numpy(), np.asarray(names)
         with Pool() as p:
             rois = p.starmap(landmarking, zip(gray_images))
-    
+
         images = images.to(device)
         logits = model(images)
         mask = np.argmax(logits.data.cpu().numpy(), axis=1)
         with Pool() as p:
             mask = p.starmap(assign_color, zip(mask, rois))
 
-        mask = np.asarray(mask) 
+        mask = np.asarray(mask)
         means = np.mean(np.mean(mask, axis=2), axis=1)
         non_black_images = np.argwhere(means!=0).reshape(-1)
         black_images = np.argwhere(means==0).reshape(-1)
@@ -116,13 +116,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Semantic Segmentation')
 
     # Arguments
-    parser.add_argument('--data-folder', type=str, default='./data',
+    parser.add_argument('--data-folder', type=str, default='../../emote/synthesized_image/',
                         help='name of the data folder (default: ./data)')
     parser.add_argument('--batch-size', type=int, default=16,
                         help='batch size (default: 16)')
     parser.add_argument('--pre-trained', type=str, default=None,
                         help='path of pre-trained weights (default: None)')
-    parser.add_argument('--save-dir', type=str, default='seg_results',
+    parser.add_argument('--save-dir', type=str, default='../../emote/si_labels/',
                         help='Directory to save results (will be created)')
     parser.add_argument("-p", "--shape-predictor", required=True,
 	                    help="path to facial landmark predictor")
@@ -140,7 +140,7 @@ if __name__ == '__main__':
     ])
     if not os.path.isdir(args.save_dir):
         os.mkdir(args.save_dir)
-    
+    print("Loading test images...")
     test_dataset = TestDataset(path=args.data_folder, transform=transform, save_path=args.save_dir)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
     model = load_model(args.device, args.pre_trained)
@@ -150,22 +150,22 @@ if __name__ == '__main__':
         gray_images, names = gray_images.numpy(), np.asarray(names)
         with Pool() as p:
             rois = p.starmap(landmarking, zip(gray_images))
-    
+
         images = images.to(args.device)
         logits = model(images)
         mask = np.argmax(logits.data.cpu().numpy(), axis=1)
         with Pool() as p:
             mask = p.starmap(assign_color, zip(mask, rois))
 
-        mask = np.asarray(mask) 
-        means = np.mean(np.mean(mask, axis=2), axis=1)
-        non_black_images = np.argwhere(means!=0).reshape(-1)
-        black_images = np.argwhere(means==0).reshape(-1)
-        write_names = names[black_images]
-        np.savetxt(namefile, write_names, fmt='%s')
-        mask = mask[non_black_images]
+        mask = np.asarray(mask)
+        # means = np.mean(np.mean(mask, axis=2), axis=1)
+        # non_black_images = np.argwhere(means!=0).reshape(-1)
+        # black_images = np.argwhere(means==0).reshape(-1)
+        # write_names = names[black_images]
+        # np.savetxt(namefile, write_names, fmt='%s')
+        # mask = mask[non_black_images]
         norm_mask = (mask - mask.min())/(mask.max() - mask.min())
         norm_mask *= 255.0
         # Save
         with Pool() as p:
-            p.starmap(cv2.imwrite, zip(names[non_black_images], norm_mask))
+            p.starmap(cv2.imwrite, zip(names, norm_mask))

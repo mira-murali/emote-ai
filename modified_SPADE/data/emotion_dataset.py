@@ -59,7 +59,7 @@ class EmotionDataset(Pix2pixDataset):
 
     def postprocess(self, input_dict, only_emotion=False):
         if only_emotion:
-            metadata = self.emotions[os.path.basename(input_dict['path'])]
+            metadata = self.emotions[os.path.splitext(os.path.basename(input_dict['path']))[0]]
             temp_emo = torch.zeros(self.opt.emo_dim, dtype=torch.float)
             temp_emo[metadata] = 1
             input_dict['meta'] = temp_emo
@@ -86,7 +86,7 @@ class EmotionDataset(Pix2pixDataset):
         label = Image.open(label_path)
         params = get_params(self.opt, label.size)
         transform_label = get_transform(self.opt, params, method=Image.NEAREST, normalize=False)
-        
+
         #Loki
         #label_tensor = transform_label(label) * 255.0
         label_tensor = transform_label(label)*7.1
@@ -120,7 +120,7 @@ class EmotionDataset(Pix2pixDataset):
                       'image': image_tensor,
                       'path': image_path,
                       }
-        
+
         # Give subclasses a chance to modify the final output
         self.postprocess(input_dict)
         return input_dict

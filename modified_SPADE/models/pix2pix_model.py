@@ -201,6 +201,8 @@ class Pix2PixModel(torch.nn.Module):
                 KLD_loss = self.KLDLoss(mu, logvar) * self.opt.lambda_kld
 
         if self.metadata is not None:
+            self.metadata = self.metadata.cuda()
+            z = z.cuda()
             z=torch.cat([z,self.metadata],1)
         fake_image = self.netG(input_semantics, z=z)
 
